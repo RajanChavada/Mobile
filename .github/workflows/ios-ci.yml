@@ -33,9 +33,8 @@ jobs:
 
       - name: Generate Xcode Project
         run: |
-          xcodegen generate \
-            --spec SipMVP/project.yml \
-            --project SipMVP/SipMVP.xcodeproj
+          cd SipMVP
+          xcodegen generate --spec project.yml
 
       - name: Show Project Schemes
         run: xcodebuild -list -project SipMVP/SipMVP.xcodeproj
