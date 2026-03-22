@@ -60,7 +60,7 @@ enum AuthProvider {
     case google
 }
 
-enum ThemeOption: String, CaseIterable, Identifiable {
+enum ThemeOption: String, Codable, CaseIterable, Identifiable {
     case warm
     case blossom
     case matcha

@@ -5,8 +5,13 @@ import Network
 final class NetworkMonitor: ObservableObject {
     @Published private(set) var isConnected: Bool = true
 
-    private let monitor = NWPathMonitor()
-    private let queue = DispatchQueue(label: "sip.network.monitor")
+    private let monitor: NWPathMonitor
+    private let queue: DispatchQueue
+
+    nonisolated init() {
+        monitor = NWPathMonitor()
+        queue = DispatchQueue(label: "sip.network.monitor")
+    }
 
     func start() {
         monitor.pathUpdateHandler = { [weak self] path in
