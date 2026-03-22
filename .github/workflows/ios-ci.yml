@@ -53,7 +53,7 @@ jobs:
         run: |
           xcodebuild \
             -project SipMVP/SipMVP.xcodeproj \
-            -scheme SipMVP \
+            -scheme SipMVPTests \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
