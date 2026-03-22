@@ -55,6 +55,6 @@ jobs:
             -project SipMVP/SipMVP.xcodeproj \
             -scheme SipMVPTests \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             CODE_SIGNING_ALLOWED=NO \
             test

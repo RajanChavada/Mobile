@@ -14,7 +14,7 @@ struct SignInSheet: View {
                 Task { await store.signIn(with: .apple) }
             }
 
-            SipButton(title: "Continue with Google", style: .secondary, isLoading: store.isSigningIn) {
+            SipButton(title: "Continue with Google", isLoading: store.isSigningIn, style: .secondary) {
                 Task { await store.signIn(with: .google) }
             }
 
