@@ -1,0 +1,61 @@
+name: iOS CI
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'SipMVP/**'
+      - '.github/workflows/ios-ci.yml'
+  pull_request:
+    paths:
+      - 'SipMVP/**'
+      - '.github/workflows/ios-ci.yml'
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 40
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode Version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew update
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode Project
+        run: |
+          xcodegen generate \
+            --spec SipMVP/project.yml \
+            --project SipMVP/SipMVP.xcodeproj
+
+      - name: Show Project Schemes
+        run: xcodebuild -list -project SipMVP/SipMVP.xcodeproj
+
+      - name: Build (Debug, iOS Simulator)
+        run: |
+          xcodebuild \
+            -project SipMVP/SipMVP.xcodeproj \
+            -scheme SipMVP \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Test (iOS Simulator)
+        run: |
+          xcodebuild \
+            -project SipMVP/SipMVP.xcodeproj \
+            -scheme SipMVP \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            test

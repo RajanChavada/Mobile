@@ -1,0 +1,27 @@
+import SwiftUI
+
+struct SignInSheet: View {
+    @EnvironmentObject private var store: AppStore
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Spacing.lg.rawValue) {
+            Text("Join to save this spot")
+                .sipTitle()
+            Text("Sign in to log venues, follow friends, and build your passport.")
+                .sipLabel()
+
+            SipButton(title: "Continue with Apple", isLoading: store.isSigningIn) {
+                Task { await store.signIn(with: .apple) }
+            }
+
+            SipButton(title: "Continue with Google", style: .secondary, isLoading: store.isSigningIn) {
+                Task { await store.signIn(with: .google) }
+            }
+
+            SipButton(title: "Not now", style: .secondary) {
+                store.dismissSignIn()
+            }
+        }
+        .padding(.top, Spacing.sm.rawValue)
+    }
+}
