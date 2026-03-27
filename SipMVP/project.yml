@@ -6,7 +6,7 @@ configs:
   Release: release
 settings:
   base:
-    PRODUCT_BUNDLE_IDENTIFIER: com.sip.app
+    PRODUCT_BUNDLE_IDENTIFIER: com.rajanchavada.sip
     IPHONEOS_DEPLOYMENT_TARGET: 16.0
     SWIFT_VERSION: 5.10
     TARGETED_DEVICE_FAMILY: 1
