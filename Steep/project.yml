@@ -38,6 +38,7 @@ targets:
     info:
       path: Info.plist
       properties:
+        ITSAppUsesNonExemptEncryption: false
         CFBundleIconName: AppIcon
         UILaunchStoryboardName: LaunchScreen
         UIRequiresFullScreen: true
