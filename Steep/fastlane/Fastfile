@@ -18,7 +18,7 @@ platform :ios do
       missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
       UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
 
-      key_is_base64 = ENV.fetch("ASC_KEY_CONTENT_BASE64", "false").casecmp("true").zero?
+      key_is_base64 = ENV.fetch("ASC_KEY_CONTENT_BASE64", "true").casecmp("true").zero?
       key_content = ENV["ASC_KEY_CONTENT"].to_s.gsub('\n', "\n")
       key_content = Base64.decode64(key_content) if key_is_base64
       key_path = File.join(Dir.tmpdir, "AuthKey_#{ENV['ASC_KEY_ID']}.p8")
