@@ -1,35 +1,51 @@
+require "tmpdir"
+require "base64"
+
 default_platform(:ios)
 
 platform :ios do
   desc "Push a new beta build to TestFlight"
   lane :beta do
-    # 1. Generate Xcode project
-    sh("xcodegen generate --spec ../project.yml")
+    key_path = nil
 
-    # 2. Setup App Store Connect API Key
-    # These secrets should be added to GitHub Actions.
-    required_env = %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_CONTENT]
-    missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
-    UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
+    begin
+      # 1. Generate Xcode project
+      sh("xcodegen generate --spec ../project.yml")
 
-    api_key = app_store_connect_api_key(
-      key_id: ENV["ASC_KEY_ID"],
-      issuer_id: ENV["ASC_ISSUER_ID"],
-      key_content: ENV["ASC_KEY_CONTENT"],
-      is_key_content_base64: ENV.fetch("ASC_KEY_CONTENT_BASE64", "false").casecmp("true").zero?,
-      in_house: false
-    )
+      # 2. Setup App Store Connect API Key
+      # These secrets should be added to GitHub Actions.
+      required_env = %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_CONTENT]
+      missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
+      UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
 
-    # 3. Build the app
-    build_app(
-      scheme: "Steep",
-      export_method: "app-store"
-    )
+      key_is_base64 = ENV.fetch("ASC_KEY_CONTENT_BASE64", "false").casecmp("true").zero?
+      key_content = ENV["ASC_KEY_CONTENT"].to_s.gsub('\n', "\n")
+      key_content = Base64.decode64(key_content) if key_is_base64
+      key_path = File.join(Dir.tmpdir, "AuthKey_#{ENV['ASC_KEY_ID']}.p8")
+      File.write(key_path, key_content)
 
-    # 4. Upload to TestFlight
-    upload_to_testflight(
-      api_key: api_key,
-      skip_waiting_for_build_processing: true
-    )
+      api_key = app_store_connect_api_key(
+        key_id: ENV["ASC_KEY_ID"],
+        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_content: key_content,
+        is_key_content_base64: false,
+        in_house: false
+      )
+
+      # 3. Build the app
+      build_app(
+        scheme: "Steep",
+        export_method: "app-store",
+        xcargs: "-allowProvisioningUpdates -authenticationKeyPath #{key_path} -authenticationKeyID #{ENV['ASC_KEY_ID']} -authenticationKeyIssuerID #{ENV['ASC_ISSUER_ID']}"
+      )
+
+      # 4. Upload to TestFlight
+      upload_to_testflight(
+        api_key: api_key,
+        skip_waiting_for_build_processing: true
+      )
+    ensure
+      File.delete(key_path) if key_path && File.exist?(key_path)
+    end
   end
 end
