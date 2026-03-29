@@ -26,10 +26,13 @@ targets:
       - path: Services
       - path: Utilities
       - path: Info.plist
+      - path: LaunchScreen.storyboard
+      - path: Assets.xcassets
     settings:
       base:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         MARKETING_VERSION: 0.1.0
         CURRENT_PROJECT_VERSION: 1
     info:

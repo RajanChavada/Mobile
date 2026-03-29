@@ -17,6 +17,8 @@ platform :ios do
       required_env = %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_CONTENT]
       missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
       UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
+      asc_key_id = ENV["ASC_KEY_ID"].to_s.strip
+      asc_issuer_id = ENV["ASC_ISSUER_ID"].to_s.strip
 
       raw_key_content = ENV["ASC_KEY_CONTENT"].to_s.strip
       candidates = []
@@ -32,12 +34,12 @@ platform :ios do
       unless key_content
         UI.user_error!("ASC_KEY_CONTENT is invalid. Provide raw .p8 text with BEGIN/END PRIVATE KEY, or set ASC_KEY_CONTENT_BASE64=true only if ASC_KEY_CONTENT is base64 of that full .p8 text.")
       end
-      key_path = File.join(Dir.tmpdir, "AuthKey_#{ENV['ASC_KEY_ID']}.p8")
+      key_path = File.join(Dir.tmpdir, "AuthKey_#{asc_key_id}.p8")
       File.write(key_path, key_content)
 
       api_key = app_store_connect_api_key(
-        key_id: ENV["ASC_KEY_ID"],
-        issuer_id: ENV["ASC_ISSUER_ID"],
+        key_id: asc_key_id,
+        issuer_id: asc_issuer_id,
         key_content: key_content,
         is_key_content_base64: false,
         in_house: false
@@ -47,7 +49,7 @@ platform :ios do
       build_app(
         scheme: "Steep",
         export_method: "app-store",
-        xcargs: "-allowProvisioningUpdates -authenticationKeyPath #{key_path} -authenticationKeyID #{ENV['ASC_KEY_ID']} -authenticationKeyIssuerID #{ENV['ASC_ISSUER_ID']}"
+        xcargs: "-allowProvisioningUpdates -authenticationKeyPath #{key_path} -authenticationKeyID #{asc_key_id} -authenticationKeyIssuerID #{asc_issuer_id}"
       )
 
       # 4. Upload to TestFlight
