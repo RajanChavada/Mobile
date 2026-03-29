@@ -19,8 +19,9 @@ platform :ios do
     # 3. Build the app
     build_app(
       scheme: "SipMVP",
-      export_method: "app-store",
-      xcargs: "CODE_SIGNING_ALLOWED=NO" # Fastlane will handle signing via API key
+      export_method: "app-store-connect",
+      api_key: api_key, # Pass the API key here
+      xcargs: "CODE_SIGNING_ALLOWED=NO" 
     )
 
     # 4. Upload to TestFlight
