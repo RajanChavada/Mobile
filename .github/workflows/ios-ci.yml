@@ -58,3 +58,35 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             CODE_SIGNING_ALLOWED=NO \
             test
+
+  deploy:
+    runs-on: macos-15
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    needs: build-and-test
+    timeout-minutes: 60
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+          working-directory: SipMVP
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+
+      - name: Deploy to TestFlight
+        run: |
+          cd SipMVP
+          bundle exec fastlane beta
