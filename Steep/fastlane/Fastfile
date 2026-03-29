@@ -19,7 +19,7 @@ platform :ios do
     # 3. Build the app
     build_app(
       scheme: "Steep",
-      export_method: "app-store-connect",
+      export_method: "app-store",
       api_key: api_key, # Pass the API key here
       xcargs: "CODE_SIGNING_ALLOWED=NO" 
     )
