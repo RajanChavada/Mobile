@@ -37,6 +37,22 @@ targets:
         CURRENT_PROJECT_VERSION: 1
     info:
       path: Info.plist
+      properties:
+        CFBundleIconName: AppIcon
+        UILaunchStoryboardName: LaunchScreen
+        UIRequiresFullScreen: true
+        UIDeviceFamily:
+          - 1
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
 
   SteepTests:
     type: bundle.unit-test
