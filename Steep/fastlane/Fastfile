@@ -18,20 +18,18 @@ platform :ios do
       missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
       UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
 
-      key_is_base64 = ENV.fetch("ASC_KEY_CONTENT_BASE64", "false").casecmp("true").zero?
       raw_key_content = ENV["ASC_KEY_CONTENT"].to_s.strip
-      key_content =
-        if raw_key_content.include?("-----BEGIN PRIVATE KEY-----")
-          # Accept raw PEM even if the base64 flag is misconfigured.
-          raw_key_content.gsub('\n', "\n")
-        elsif key_is_base64
-          Base64.decode64(raw_key_content)
-        else
-          raw_key_content.gsub('\n', "\n")
-        end
-      key_content = "#{key_content.strip}\n"
+      candidates = []
+      candidates << raw_key_content
+      candidates << raw_key_content.gsub('\n', "\n")
+      candidates << Base64.decode64(raw_key_content)
+      candidates << Base64.decode64(raw_key_content.gsub('\n', "\n"))
 
-      unless key_content.include?("-----BEGIN PRIVATE KEY-----") && key_content.include?("-----END PRIVATE KEY-----")
+      key_content = candidates
+        .map { |c| "#{c.to_s.strip}\n" }
+        .find { |c| c.include?("-----BEGIN PRIVATE KEY-----") && c.include?("-----END PRIVATE KEY-----") }
+
+      unless key_content
         UI.user_error!("ASC_KEY_CONTENT is invalid. Provide raw .p8 text with BEGIN/END PRIVATE KEY, or set ASC_KEY_CONTENT_BASE64=true only if ASC_KEY_CONTENT is base64 of that full .p8 text.")
       end
       key_path = File.join(Dir.tmpdir, "AuthKey_#{ENV['ASC_KEY_ID']}.p8")
