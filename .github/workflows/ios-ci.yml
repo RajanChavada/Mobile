@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'SipMVP/**'
+      - 'Steep/**'
       - '.github/workflows/ios-ci.yml'
   pull_request:
     paths:
-      - 'SipMVP/**'
+      - 'Steep/**'
       - '.github/workflows/ios-ci.yml'
 
 jobs:
@@ -33,17 +33,17 @@ jobs:
 
       - name: Generate Xcode Project
         run: |
-          cd SipMVP
+          cd Steep
           xcodegen generate --spec project.yml
 
       - name: Show Project Schemes
-        run: xcodebuild -list -project SipMVP/SipMVP.xcodeproj
+        run: xcodebuild -list -project Steep/Steep.xcodeproj
 
       - name: Build (Debug, iOS Simulator)
         run: |
           xcodebuild \
-            -project SipMVP/SipMVP.xcodeproj \
-            -scheme SipMVP \
+            -project Steep/Steep.xcodeproj \
+            -scheme Steep \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO \
@@ -52,8 +52,8 @@ jobs:
       - name: Test (iOS Simulator)
         run: |
           xcodebuild \
-            -project SipMVP/SipMVP.xcodeproj \
-            -scheme SipMVPTests \
+            -project Steep/Steep.xcodeproj \
+            -scheme SteepTests \
             -configuration Debug \
             -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
             CODE_SIGNING_ALLOWED=NO \
@@ -78,7 +78,7 @@ jobs:
         with:
           ruby-version: '3.3'
           bundler-cache: true
-          working-directory: SipMVP
+          working-directory: Steep
 
       - name: Install XcodeGen
         run: |
@@ -88,5 +88,5 @@ jobs:
 
       - name: Deploy to TestFlight
         run: |
-          cd SipMVP
+          cd Steep
           bundle exec fastlane beta

@@ -18,7 +18,7 @@ platform :ios do
 
     # 3. Build the app
     build_app(
-      scheme: "SipMVP",
+      scheme: "Steep",
       export_method: "app-store-connect",
       api_key: api_key, # Pass the API key here
       xcargs: "CODE_SIGNING_ALLOWED=NO" 

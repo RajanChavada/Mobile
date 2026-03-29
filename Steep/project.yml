@@ -1,4 +1,4 @@
-name: SipMVP
+name: Steep
 options:
   minimumXcodeGenVersion: 2.38.0
 configs:
@@ -6,14 +6,15 @@ configs:
   Release: release
 settings:
   base:
-    PRODUCT_BUNDLE_IDENTIFIER: com.rajanchavada.sip
+    PRODUCT_BUNDLE_IDENTIFIER: com.steep.app
+    DEVELOPMENT_TEAM: K4B3QDXWLD
     IPHONEOS_DEPLOYMENT_TARGET: 16.0
     SWIFT_VERSION: 5.10
     TARGETED_DEVICE_FAMILY: 1
     INFOPLIST_FILE: Info.plist
 packages: {}
 targets:
-  SipMVP:
+  Steep:
     type: application
     platform: iOS
     sources:
@@ -34,13 +35,13 @@ targets:
     info:
       path: Info.plist
 
-  SipMVPTests:
+  SteepTests:
     type: bundle.unit-test
     platform: iOS
     sources:
       - path: Tests
     dependencies:
-      - target: SipMVP
+      - target: Steep
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sip.app.tests

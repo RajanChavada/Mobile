@@ -1,6 +1,6 @@
-# SipMVP (SwiftUI Scratch MVP)
+# Steep (SwiftUI Scratch MVP)
 
-This folder contains a SwiftUI-first scratch MVP scaffold for the Sip iOS app based on `AGENT.md`, `PROJECT.md`, and `SCREENS_FLOW.md`.
+This folder contains a SwiftUI-first scratch MVP scaffold for the Steep iOS app based on `AGENT.md`, `PROJECT.md`, and `SCREENS_FLOW.md`.
 
 ## Implemented in this scaffold
 
@@ -50,8 +50,8 @@ Optional but currently ignored on client:
 - Runner: `macos-15`
 - Actions performed:
   - install `xcodegen`
-  - generate `SipMVP.xcodeproj` from `project.yml`
+  - generate `Steep.xcodeproj` from `project.yml`
   - `xcodebuild clean build` for iOS Simulator
-  - `xcodebuild test` (runs `SipMVPTests`)
+  - `xcodebuild test` (runs `SteepTests`)
 
 You can run it from GitHub Actions via `workflow_dispatch` or by pushing a branch/PR that changes files in `SipMVP/**`.
