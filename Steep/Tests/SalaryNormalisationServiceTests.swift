@@ -1,5 +1,5 @@
 import XCTest
-@testable import SipMVP
+@testable import Steep
 
 final class SalaryNormalisationServiceTests: XCTestCase {
     func testNormaliseRemovesCommasAndWhitespace() async {

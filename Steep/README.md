@@ -54,4 +54,4 @@ Optional but currently ignored on client:
   - `xcodebuild clean build` for iOS Simulator
   - `xcodebuild test` (runs `SteepTests`)
 
-You can run it from GitHub Actions via `workflow_dispatch` or by pushing a branch/PR that changes files in `SipMVP/**`.
+You can run it from GitHub Actions via `workflow_dispatch` or by pushing a branch/PR that changes files in `Steep/**`.

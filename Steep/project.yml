@@ -44,6 +44,6 @@ targets:
       - target: Steep
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.sip.app.tests
-        TEST_HOST: $(BUILT_PRODUCTS_DIR)/SipMVP.app/SipMVP
+        PRODUCT_BUNDLE_IDENTIFIER: com.steep.app.tests
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Steep.app/Steep
         BUNDLE_LOADER: $(TEST_HOST)
