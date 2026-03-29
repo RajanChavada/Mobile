@@ -1,6 +1,6 @@
-app_identifier("com.rajanchavada.sip") # The bundle identifier of your app
-apple_id("rajanchavada@me.com") # Your Apple Developer Portal username
+app_identifier("com.steep.app") # The bundle identifier of your app
+apple_id("JimmyChavada22@gmail.com") # Your Apple Developer Portal username
 
 # Replace these with your actual IDs from developer.apple.com > Membership Details
-itc_team_id("2224823") # Standard example, please verify
-team_id("VW2R5H72S7")  # Standard example, please verify
+itc_team_id("10273762773") # Standard example, please verify
+team_id("K4B3QDXWLD")  # Standard example, please verify

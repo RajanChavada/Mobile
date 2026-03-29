@@ -4,7 +4,7 @@ platform :ios do
   desc "Push a new beta build to TestFlight"
   lane :beta do
     # 1. Generate Xcode project
-    sh("xcodegen generate --spec project.yml")
+    sh("xcodegen generate --spec ../project.yml")
 
     # 2. Setup App Store Connect API Key
     # These secrets should be added to GitHub Actions
