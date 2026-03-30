@@ -167,5 +167,3 @@ final class SupabaseBackendService: BackendService {
 
     // authedFunction removed in favor of Supabase SDK
 }
-
-}
