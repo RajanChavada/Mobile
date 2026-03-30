@@ -149,6 +149,13 @@ struct OnboardingInput: Codable {
     let city: String
     let theme: ThemeOption
     let enableProximity: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case preference
+        case city
+        case theme
+        case enableProximity = "enable_proximity"
+    }
 }
 
 struct DraftLog: Codable {

@@ -85,15 +85,8 @@ final class SupabaseBackendService: BackendService {
     }
 
     func completeOnboarding(session: UserSession, input: OnboardingInput) async throws -> UserProfile {
-        let profileData: [String: AnyJSON] = [
-            "preference": .string(input.preference.rawValue),
-            "city": .string(input.city),
-            "theme": .string(input.theme.rawValue),
-            "enable_proximity": .boolean(input.enableProximity)
-        ]
-        
         return try await client.from("profiles")
-            .update(profileData)
+            .update(input)
             .eq("id", value: session.user.id)
             .select()
             .single()
@@ -102,21 +95,10 @@ final class SupabaseBackendService: BackendService {
     }
 
     func submitLog(session: UserSession, draft: DraftLog) async throws -> SipLog {
-        // In a real app, you'd upload photos to Supabase Storage first.
-        // For this refactor, we'll focus on the log record insertion.
-        let logData: [String: AnyJSON] = [
-            "user_id": .string(session.user.id.uuidString),
-            "venue_id": .string(draft.venue.id.uuidString),
-            "rating": .integer(draft.rating),
-            "note": .string(draft.note),
-            "drink_type": .string(draft.drinkType.rawValue),
-            "is_public": .boolean(draft.isPublic),
-            "venue_name": .string(draft.venue.name),
-            "username": .string(session.user.username)
-        ]
+        let logDTO = SubmitLogDTO(from: draft, userID: session.user.id, username: session.user.username)
         
         return try await client.from("logs")
-            .insert(logData)
+            .insert(logDTO)
             .select("*, venues(*), users(*)")
             .single()
             .execute()
@@ -125,12 +107,9 @@ final class SupabaseBackendService: BackendService {
 
     func setFollow(session: UserSession, targetUserID: UUID, shouldFollow: Bool) async throws {
         if shouldFollow {
-            let followData: [String: AnyJSON] = [
-                "follower_id": .string(session.user.id.uuidString),
-                "following_id": .string(targetUserID.uuidString)
-            ]
+            let followDTO = FollowDTO(followerID: session.user.id, followingID: targetUserID)
             try await client.from("follows")
-                .insert(followData)
+                .insert(followDTO)
                 .execute()
         } else {
             try await client.from("follows")
@@ -166,4 +145,47 @@ final class SupabaseBackendService: BackendService {
     }
 
     // authedFunction removed in favor of Supabase SDK
+}
+
+private struct SubmitLogDTO: Codable {
+    let userID: UUID
+    let venueID: UUID
+    let venueName: String
+    let username: String
+    let rating: Int
+    let note: String
+    let drinkType: String
+    let isPublic: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case venueID = "venue_id"
+        case venueName = "venue_name"
+        case username
+        case rating
+        case note
+        case drinkType = "drink_type"
+        case isPublic = "is_public"
+    }
+
+    init(from draft: DraftLog, userID: UUID, username: String) {
+        self.userID = userID
+        self.venueID = draft.venue.id
+        self.venueName = draft.venue.name
+        self.username = username
+        self.rating = draft.rating
+        self.note = draft.note
+        self.drinkType = draft.drinkType.rawValue
+        self.isPublic = draft.isPublic
+    }
+}
+
+private struct FollowDTO: Codable {
+    let followerID: UUID
+    let followingID: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case followerID = "follower_id"
+        case followingID = "following_id"
+    }
 }
