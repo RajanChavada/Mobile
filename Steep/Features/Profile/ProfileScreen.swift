@@ -45,18 +45,46 @@ struct ProfileScreen: View {
     }
 
     private var guestProfile: some View {
-        VStack(alignment: .leading, spacing: Spacing.md.rawValue) {
-            Text("Join Sip")
-                .sipTitle()
-            Text("Sign in to build your profile, follow people, and unlock passport progress.")
-                .sipLabel()
+        VStack(alignment: .leading, spacing: Spacing.lg.rawValue) {
+            HStack(alignment: .center, spacing: Spacing.md.rawValue) {
+                ZStack {
+                    Circle()
+                        .fill(ColorToken.accentSoft)
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "person.crop.circle.badge.plus")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(ColorToken.accent)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Join Sip")
+                        .sipTitle()
+                    Text("Build your profile, follow people, and unlock passport progress.")
+                        .sipLabel()
+                }
+
+                Spacer()
+            }
+
             SipButton(title: "Sign in") {
-                store.requestProtectedAction(.saveVenue(venueID: UUID()))
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.9)) {
+                    store.requestProtectedAction(.saveVenue(venueID: UUID()))
+                }
             }
         }
         .padding(Spacing.lg.rawValue)
-        .background(ColorToken.surface)
+        .background(
+            LinearGradient(
+                colors: [ColorToken.surface, ColorToken.accentSoft.opacity(0.3)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
         .clipShape(RoundedRectangle(cornerRadius: Radius.lg.rawValue, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: Radius.lg.rawValue, style: .continuous)
+                .stroke(ColorToken.border, lineWidth: 1)
+        }
     }
 
     private func metric(_ title: String, value: Int) -> some View {

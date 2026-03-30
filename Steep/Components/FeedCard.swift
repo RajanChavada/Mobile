@@ -22,11 +22,7 @@ struct FeedCard: View {
             }
 
             HStack(spacing: Spacing.sm.rawValue) {
-                Image(systemName: "drop.fill")
-                    .foregroundStyle(ColorToken.accent)
-                Text("\(log.rating)/5")
-                    .sipBody()
-                    .monospacedDigit()
+                RatingBadge(text: "\(log.rating)/5", emphasized: true)
                 if log.isPendingSync {
                     Text("Syncing")
                         .sipLabel()

@@ -15,8 +15,7 @@ struct VenueDetailSheet: View {
 
             HStack(spacing: Spacing.md.rawValue) {
                 Label(venue.category.rawValue.capitalized, systemImage: "tag")
-                Label(String(format: "%.1f", venue.averageRating), systemImage: "drop.fill")
-                    .monospacedDigit()
+                RatingBadge(text: String(format: "%.1f", venue.averageRating), emphasized: true)
                 Label("\(venue.reviewCount)", systemImage: "person.2")
                     .monospacedDigit()
             }

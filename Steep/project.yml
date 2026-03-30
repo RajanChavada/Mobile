@@ -12,7 +12,10 @@ settings:
     SWIFT_VERSION: 5.10
     TARGETED_DEVICE_FAMILY: 1
     INFOPLIST_FILE: Info.plist
-packages: {}
+packages:
+  Supabase:
+    url: https://github.com/supabase-community/supabase-swift
+    from: 2.15.0
 targets:
   Steep:
     type: application
@@ -28,6 +31,8 @@ targets:
       - path: Info.plist
       - path: LaunchScreen.storyboard
       - path: Assets.xcassets
+    dependencies:
+      - package: Supabase
     settings:
       base:
         CODE_SIGN_STYLE: Automatic

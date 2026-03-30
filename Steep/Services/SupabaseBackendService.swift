@@ -1,14 +1,18 @@
 import Foundation
+import Supabase
 
 final class SupabaseBackendService: BackendService {
-    private let configuration: AppConfiguration
-    private let session: URLSession
+    private let client: SupabaseClient
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
 
-    init(configuration: AppConfiguration = .shared, session: URLSession = .shared) {
-        self.configuration = configuration
-        self.session = session
+    init(configuration: AppConfiguration = .shared) {
+        guard let url = configuration.supabaseURL,
+              let key = configuration.supabasePublishableKey else {
+            fatalError("Supabase configuration missing")
+        }
+        
+        self.client = SupabaseClient(supabaseURL: url, supabaseKey: key)
 
         decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -19,13 +23,60 @@ final class SupabaseBackendService: BackendService {
 
     func bootstrap(city: String, session: UserSession?) async throws -> BootstrapPayload {
         let authSession = try requireAuthenticatedSession(session)
-        let body = BootstrapRequest(city: city)
-        return try await authedFunction(
-            path: "bootstrap",
-            payload: body,
-            token: authSession.accessToken,
-            response: BootstrapDTO.self
-        ).toDomain
+        
+        return try await withThrowingTaskGroup(of: BootstrapPayloadPart.self) { group in
+            group.addTask {
+                let venues: [Venue] = try await self.client.from("venues")
+                    .select("*")
+                    .eq("city", value: city)
+                    .execute()
+                    .value
+                return .venues(venues)
+            }
+            
+            group.addTask {
+                let feed = try await self.fetchFeed(session: authSession)
+                return .feed(feed)
+            }
+            
+            group.addTask {
+                let stamps = try await self.fetchPassport(session: authSession)
+                return .stamps(stamps)
+            }
+            
+            // For V1, we might just fetch the current user and some "suggested" users
+            group.addTask {
+                let users: [UserProfile] = try await self.client.from("profiles")
+                    .select("*")
+                    .limit(10)
+                    .execute()
+                    .value
+                return .users(users)
+            }
+            
+            var venues: [Venue] = []
+            var feed: [SipLog] = []
+            var users: [UserProfile] = []
+            var stamps: [PassportStamp] = []
+            
+            for try await part in group {
+                switch part {
+                case .venues(let v): venues = v
+                case .feed(let f): feed = f
+                case .users(let u): users = u
+                case .stamps(let s): stamps = s
+                }
+            }
+            
+            return BootstrapPayload(venues: venues, feed: feed, users: users, stamps: stamps)
+        }
+    }
+    
+    private enum BootstrapPayloadPart {
+        case venues([Venue])
+        case feed([SipLog])
+        case users([UserProfile])
+        case stamps([PassportStamp])
     }
 
     func signIn(with provider: AuthProvider) async throws -> UserSession {
@@ -34,29 +85,77 @@ final class SupabaseBackendService: BackendService {
     }
 
     func completeOnboarding(session: UserSession, input: OnboardingInput) async throws -> UserProfile {
-        let payload = CompleteOnboardingRequest(input: input)
-        let response: UserProfile = try await authedFunction(path: "complete-onboarding", payload: payload, token: session.accessToken, response: UserProfile.self)
-        return response
+        let profileData: [String: AnyJSON] = [
+            "preference": .string(input.preference.rawValue),
+            "city": .string(input.city),
+            "theme": .string(input.theme.rawValue),
+            "enable_proximity": .boolean(input.enableProximity)
+        ]
+        
+        return try await client.from("profiles")
+            .update(profileData)
+            .eq("id", value: session.user.id)
+            .select()
+            .single()
+            .execute()
+            .value
     }
 
     func submitLog(session: UserSession, draft: DraftLog) async throws -> SipLog {
-        let payload = SubmitLogDTO(from: draft)
-        return try await authedFunction(path: "submit-log", payload: payload, token: session.accessToken, response: SipLog.self)
+        // In a real app, you'd upload photos to Supabase Storage first.
+        // For this refactor, we'll focus on the log record insertion.
+        let logData: [String: AnyJSON] = [
+            "user_id": .string(session.user.id.uuidString),
+            "venue_id": .string(draft.venue.id.uuidString),
+            "rating": .integer(draft.rating),
+            "note": .string(draft.note),
+            "drink_type": .string(draft.drinkType.rawValue),
+            "is_public": .boolean(draft.isPublic),
+            "venue_name": .string(draft.venue.name),
+            "username": .string(session.user.username)
+        ]
+        
+        return try await client.from("logs")
+            .insert(logData)
+            .select("*, venues(*), users(*)")
+            .single()
+            .execute()
+            .value
     }
 
     func setFollow(session: UserSession, targetUserID: UUID, shouldFollow: Bool) async throws {
-        let payload = SetFollowRequest(targetUserID: targetUserID, shouldFollow: shouldFollow)
-        let _: EmptyResponse = try await authedFunction(path: "set-follow", payload: payload, token: session.accessToken, response: EmptyResponse.self)
+        if shouldFollow {
+            let followData: [String: AnyJSON] = [
+                "follower_id": .string(session.user.id.uuidString),
+                "following_id": .string(targetUserID.uuidString)
+            ]
+            try await client.from("follows")
+                .insert(followData)
+                .execute()
+        } else {
+            try await client.from("follows")
+                .delete()
+                .eq("follower_id", value: session.user.id)
+                .eq("following_id", value: targetUserID)
+                .execute()
+        }
     }
 
     func fetchFeed(session: UserSession) async throws -> [SipLog] {
-        let response: FeedDTO = try await authedFunction(path: "feed", payload: EmptyRequest(), token: session.accessToken, response: FeedDTO.self)
-        return response.items
+        return try await client.from("logs")
+            .select("*, venues(*), users(*)")
+            .eq("is_public", value: true)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
     }
 
     func fetchPassport(session: UserSession) async throws -> [PassportStamp] {
-        let response: PassportDTO = try await authedFunction(path: "passport", payload: EmptyRequest(), token: session.accessToken, response: PassportDTO.self)
-        return response.stamps
+        return try await client.from("passport_stamps")
+            .select("*")
+            .eq("user_id", value: session.user.id)
+            .execute()
+            .value
     }
 
     private func requireAuthenticatedSession(_ session: UserSession?) throws -> UserSession {
@@ -66,110 +165,7 @@ final class SupabaseBackendService: BackendService {
         return session
     }
 
-    private func authedFunction<Response: Decodable>(
-        path: String,
-        payload: some Encodable,
-        token: String,
-        response: Response.Type
-    ) async throws -> Response {
-        guard let baseURL = configuration.supabaseURL else {
-            throw AppError.missingConfiguration("SUPABASE_URL")
-        }
-
-        guard let publishableKey = configuration.supabasePublishableKey, !publishableKey.isEmpty else {
-            throw AppError.missingConfiguration("SUPABASE_PUBLISHABLE")
-        }
-
-        let endpoint = baseURL.appending(path: "functions/v1/\(path)")
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue(publishableKey, forHTTPHeaderField: "apikey")
-        request.httpBody = try encoder.encode(payload)
-
-        let (data, urlResponse) = try await session.data(for: request)
-
-        guard let http = urlResponse as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            let message = String(data: data, encoding: .utf8) ?? "Unknown network error"
-            throw AppError.network(message)
-        }
-
-        if Response.self == EmptyResponse.self {
-            return EmptyResponse() as! Response
-        }
-
-        return try decoder.decode(Response.self, from: data)
-    }
+    // authedFunction removed in favor of Supabase SDK
 }
 
-private struct EmptyResponse: Codable {}
-private struct EmptyRequest: Codable {}
-
-private struct BootstrapRequest: Codable {
-    let city: String
-}
-
-private struct CompleteOnboardingRequest: Codable {
-    let preference: String
-    let city: String
-    let theme: String
-    let enableProximity: Bool
-
-    init(input: OnboardingInput) {
-        preference = input.preference.rawValue
-        city = input.city
-        theme = input.theme.rawValue
-        enableProximity = input.enableProximity
-    }
-}
-
-private struct SetFollowRequest: Codable {
-    let targetUserID: String
-    let shouldFollow: Bool
-
-    enum CodingKeys: String, CodingKey {
-        case targetUserID = "target_user_id"
-        case shouldFollow = "should_follow"
-    }
-
-    init(targetUserID: UUID, shouldFollow: Bool) {
-        self.targetUserID = targetUserID.uuidString
-        self.shouldFollow = shouldFollow
-    }
-}
-
-private struct SubmitLogDTO: Codable {
-    let venueID: UUID
-    let rating: Int
-    let note: String
-    let drinkType: DrinkPreference
-    let isPublic: Bool
-
-    init(from draft: DraftLog) {
-        venueID = draft.venue.id
-        rating = draft.rating
-        note = draft.note
-        drinkType = draft.drinkType
-        isPublic = draft.isPublic
-    }
-}
-
-private struct FeedDTO: Codable {
-    let items: [SipLog]
-}
-
-private struct PassportDTO: Codable {
-    let stamps: [PassportStamp]
-}
-
-private struct BootstrapDTO: Codable {
-    let venues: [Venue]
-    let feed: [SipLog]
-    let users: [UserProfile]
-    let stamps: [PassportStamp]
-
-    var toDomain: BootstrapPayload {
-        BootstrapPayload(venues: venues, feed: feed, users: users, stamps: stamps)
-    }
 }

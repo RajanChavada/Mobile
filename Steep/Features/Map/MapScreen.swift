@@ -29,7 +29,12 @@ struct MapScreen: View {
                         .buttonStyle(.plain)
                     }
                 }
+                .environment(\.colorScheme, .light)
                 .clipShape(RoundedRectangle(cornerRadius: Radius.lg.rawValue, style: .continuous))
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.lg.rawValue, style: .continuous)
+                        .stroke(ColorToken.border, lineWidth: 1)
+                }
                 .frame(height: 310)
 
                 if filteredVenues.isEmpty {
@@ -46,6 +51,7 @@ struct MapScreen: View {
                                 .buttonStyle(.plain)
                             }
                         }
+                        .animation(.spring(response: 0.35, dampingFraction: 0.9), value: filteredVenues.count)
                     }
                 }
             }
@@ -148,9 +154,7 @@ struct MapScreen: View {
                     .lineLimit(1)
             }
             Spacer()
-            Text(String(format: "%.1f", venue.averageRating))
-                .sipBody()
-                .monospacedDigit()
+            RatingBadge(text: String(format: "%.1f", venue.averageRating), emphasized: true)
         }
         .padding(Spacing.md.rawValue)
         .background(ColorToken.surface)

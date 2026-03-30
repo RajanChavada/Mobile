@@ -26,6 +26,7 @@ struct PassportScreen: View {
                                 stampCard(stamp)
                             }
                         }
+                        .animation(.spring(response: 0.35, dampingFraction: 0.9), value: store.stamps.count)
                     }
 
                     SipButton(title: "View city leaderboard", style: .secondary) {
@@ -48,9 +49,8 @@ struct PassportScreen: View {
                 .sipBody()
             Text(stamp.neighbourhood)
                 .sipLabel()
-            Text(stamp.month)
+            Text(formattedMonth(stamp.month))
                 .sipLabel()
-                .monospacedDigit()
         }
         .padding(Spacing.md.rawValue)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -60,5 +60,16 @@ struct PassportScreen: View {
             RoundedRectangle(cornerRadius: Radius.md.rawValue, style: .continuous)
                 .stroke(stamp.unlocked ? ColorToken.accent : ColorToken.border, lineWidth: 1)
         }
+    }
+
+    private func formattedMonth(_ raw: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        guard let date = formatter.date(from: raw) else { return raw }
+
+        let output = DateFormatter()
+        output.dateFormat = "MMMM yyyy"
+        return output.string(from: date)
     }
 }

@@ -22,6 +22,7 @@ struct FeedScreen: View {
                             FeedCard(log: log, author: store.author(for: log))
                         }
                     }
+                    .animation(.spring(response: 0.35, dampingFraction: 0.9), value: store.feed.count)
                     .padding(.horizontal, Spacing.page.rawValue)
                     .padding(.vertical, Spacing.md.rawValue)
                 }

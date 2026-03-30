@@ -5,10 +5,12 @@ struct SignInSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.lg.rawValue) {
-            Text("Join to save this spot")
-                .sipTitle()
-            Text("Sign in to log venues, follow friends, and build your passport.")
-                .sipLabel()
+            VStack(alignment: .leading, spacing: Spacing.xs.rawValue) {
+                Text("Join to save this spot")
+                    .sipTitle()
+                Text("Sign in to log venues, follow friends, and build your passport.")
+                    .sipLabel()
+            }
 
             SipButton(title: "Continue with Apple", isLoading: store.isSigningIn) {
                 Task { await store.signIn(with: .apple) }
@@ -22,6 +24,7 @@ struct SignInSheet: View {
                 store.dismissSignIn()
             }
         }
-        .padding(.top, Spacing.sm.rawValue)
+        .padding(.top, Spacing.md.rawValue)
+        .padding(.bottom, Spacing.sm.rawValue)
     }
 }

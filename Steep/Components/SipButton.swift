@@ -25,8 +25,10 @@ struct SipButton: View {
                     .foregroundStyle(foregroundColor)
                     .lineLimit(1)
             }
+            .frame(minHeight: 22)
             .padding(.vertical, Spacing.md.rawValue)
             .frame(maxWidth: fullWidth ? .infinity : nil)
+            .frame(minHeight: 52)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: Radius.md.rawValue, style: .continuous))
             .overlay {
