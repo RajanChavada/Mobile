@@ -38,16 +38,18 @@ final class SupabaseBackendService: BackendService {
 
         async let feedTask: [SipLog] = (try? fetchPublicFeed()) ?? []
         async let usersTask: [UserProfile] = (try? fetchUsers()) ?? []
-        async let stampsTask: [PassportStamp] = {
-            guard let authSession = session else { return [] }
-            return (try? fetchPassport(session: authSession)) ?? []
-        }()
+        let stamps: [PassportStamp]
+        if let authSession = session {
+            stamps = (try? await fetchPassport(session: authSession)) ?? []
+        } else {
+            stamps = []
+        }
 
         return BootstrapPayload(
             venues: venues,
             feed: await feedTask,
             users: await usersTask,
-            stamps: await stampsTask
+            stamps: stamps
         )
     }
 
