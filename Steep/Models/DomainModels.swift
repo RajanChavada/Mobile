@@ -168,10 +168,20 @@ struct DraftLog: Codable {
     let isPublic: Bool
 }
 
+struct CreateVenueInput: Codable {
+    let name: String
+    let address: String
+    let city: String
+    let latitude: Double
+    let longitude: Double
+    let category: VenueCategory
+}
+
 enum ProtectedAction {
     case log(venue: Venue?)
     case follow(userID: UUID)
     case saveVenue(venueID: UUID)
+    case createVenue(input: CreateVenueInput)
 }
 
 enum AppError: LocalizedError {

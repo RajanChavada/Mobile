@@ -78,12 +78,25 @@ struct MapScreen: View {
         store.venues
             .filter { venue in
                 if let selectedCategory {
-                    return venue.category == selectedCategory || selectedCategory == .both
+                    switch selectedCategory {
+                    case .coffee:
+                        return venue.category == .coffee || venue.category == .both
+                    case .matcha:
+                        return venue.category == .matcha || venue.category == .both
+                    case .both:
+                        return true
+                    case .other:
+                        return venue.category == .other
+                    }
                 }
                 return true
             }
             .filter { venue in
-                searchText.isEmpty || venue.name.localizedCaseInsensitiveContains(searchText)
+                let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !query.isEmpty else { return true }
+                return venue.name.localizedCaseInsensitiveContains(query)
+                    || venue.address.localizedCaseInsensitiveContains(query)
+                    || venue.city.localizedCaseInsensitiveContains(query)
             }
     }
 
@@ -102,7 +115,7 @@ struct MapScreen: View {
         HStack(spacing: Spacing.sm.rawValue) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(ColorToken.textSecondary)
-            TextField("Search this city", text: $searchText)
+            TextField("Search venues or city", text: $searchText)
                 .textInputAutocapitalization(.words)
         }
         .padding(Spacing.md.rawValue)
@@ -140,6 +153,20 @@ struct MapScreen: View {
                 .sipBody()
             Text("Pull to refresh or try another city")
                 .sipLabel()
+
+            if !trimmedQuery.isEmpty {
+                SipButton(title: "Add \"\(trimmedQuery)\"") {
+                    let input = CreateVenueInput(
+                        name: trimmedQuery,
+                        address: trimmedQuery,
+                        city: store.city,
+                        latitude: region.center.latitude,
+                        longitude: region.center.longitude,
+                        category: selectedCategory ?? .both
+                    )
+                    store.requestProtectedAction(.createVenue(input: input))
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(Spacing.lg.rawValue)
@@ -174,5 +201,9 @@ struct MapScreen: View {
     private func centerRegionIfNeeded() {
         guard let first = filteredVenues.first else { return }
         region.center = first.coordinate
+    }
+
+    private var trimmedQuery: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

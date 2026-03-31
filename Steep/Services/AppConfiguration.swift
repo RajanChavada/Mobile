@@ -3,6 +3,7 @@ import Foundation
 struct AppConfiguration {
     let supabaseURL: URL?
     let supabasePublishableKey: String?
+    let supabaseAuthRedirectURL: URL?
     let supabaseSecret: String?
     let hasClientGoogleKey: Bool
 
@@ -25,6 +26,14 @@ struct AppConfiguration {
             environment["SUPABASE_PUBLISHABLE"],
             bundle["SUPABASE_PUBLISHABLE"] as? String
         )
+        if let redirectValue = Self.resolvedValue(
+            environment["SUPABASE_AUTH_REDIRECT_URL"],
+            bundle["SUPABASE_AUTH_REDIRECT_URL"] as? String
+        ) {
+            supabaseAuthRedirectURL = URL(string: redirectValue)
+        } else {
+            supabaseAuthRedirectURL = nil
+        }
         supabaseSecret = Self.resolvedValue(
             environment["SUPABASE_SECRET"],
             bundle["SUPABASE_SECRET"] as? String

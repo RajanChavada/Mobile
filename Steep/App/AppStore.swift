@@ -87,6 +87,11 @@ final class AppStore: ObservableObject {
         guard !hasStarted else { return }
         hasStarted = true
         networkMonitor.start()
+        if let restored = try? await backend.restoreSession() {
+            authState = .authenticated(restored)
+            city = restored.user.city
+            isOnboardingPresented = needsOnboarding(profile: restored.user)
+        }
         await pendingQueue.load()
         await bootstrap()
     }
@@ -127,7 +132,7 @@ final class AppStore: ObservableObject {
             session.user.username = normalized
             authState = .authenticated(session)
             isSignInSheetPresented = false
-            isOnboardingPresented = true
+            isOnboardingPresented = needsOnboarding(profile: session.user)
             inlineError = nil
         } catch {
             inlineError = error.localizedDescription
@@ -221,6 +226,24 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func createVenue(input: CreateVenueInput) async {
+        guard let session = authSession else {
+            requestProtectedAction(.createVenue(input: input))
+            return
+        }
+
+        do {
+            let created = try await backend.createVenue(session: session, input: input)
+            if !venues.contains(where: { $0.id == created.id }) {
+                venues.insert(created, at: 0)
+            }
+            selectedVenue = created
+            inlineError = nil
+        } catch {
+            inlineError = error.localizedDescription
+        }
+    }
+
     func setFollow(userID: UUID, shouldFollow: Bool) async {
         guard let session = authSession else {
             requestProtectedAction(.follow(userID: userID))
@@ -266,6 +289,8 @@ final class AppStore: ObservableObject {
             Task { await setFollow(userID: userID, shouldFollow: true) }
         case .saveVenue:
             inlineError = "Save is not wired in this scratch MVP yet."
+        case .createVenue(let input):
+            Task { await createVenue(input: input) }
         }
     }
 
@@ -315,5 +340,10 @@ final class AppStore: ObservableObject {
                 return
             }
         }
+    }
+
+    private func needsOnboarding(profile: UserProfile) -> Bool {
+        profile.city.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || profile.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }

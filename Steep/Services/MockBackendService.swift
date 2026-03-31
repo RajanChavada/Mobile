@@ -151,6 +151,35 @@ actor MockBackendService: BackendService {
         return users[index]
     }
 
+    func createVenue(session: UserSession, input: CreateVenueInput) async throws -> Venue {
+        _ = session
+        try await Task.sleep(nanoseconds: 140_000_000)
+
+        if let existing = venues.first(where: {
+            $0.name.caseInsensitiveCompare(input.name) == .orderedSame &&
+            $0.city.caseInsensitiveCompare(input.city) == .orderedSame
+        }) {
+            return existing
+        }
+
+        let created = Venue(
+            id: UUID(),
+            placeID: "user-\(UUID().uuidString.lowercased())",
+            name: input.name,
+            address: input.address,
+            city: input.city,
+            latitude: input.latitude,
+            longitude: input.longitude,
+            category: input.category,
+            averageRating: 0,
+            reviewCount: 0,
+            isActive: true
+        )
+
+        venues.insert(created, at: 0)
+        return created
+    }
+
     func submitLog(session: UserSession, draft: DraftLog) async throws -> SipLog {
         try await Task.sleep(nanoseconds: 240_000_000)
 

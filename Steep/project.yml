@@ -45,10 +45,15 @@ targets:
       properties:
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_PUBLISHABLE: $(SUPABASE_PUBLISHABLE)
+        SUPABASE_AUTH_REDIRECT_URL: $(SUPABASE_AUTH_REDIRECT_URL)
         GOOGLE_MAPS_API: $(GOOGLE_MAPS_API)
         NSPhotoLibraryUsageDescription: Allow photo access so you can attach images to your logs.
         ITSAppUsesNonExemptEncryption: false
         CFBundleIconName: AppIcon
+        CFBundleURLTypes:
+          - CFBundleURLName: com.steep.app.auth
+            CFBundleURLSchemes:
+              - steep
         UILaunchStoryboardName: LaunchScreen
         UIRequiresFullScreen: true
         UIDeviceFamily:

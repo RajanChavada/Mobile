@@ -5,14 +5,15 @@ final class SupabaseBackendService: BackendService {
     private let client: SupabaseClient
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-    private let authFallback: BackendService = MockBackendService()
+    private let venueFallback: BackendService = MockBackendService()
+    private let configuration: AppConfiguration
 
     init(configuration: AppConfiguration = .shared) {
         guard let url = configuration.supabaseURL,
               let key = configuration.supabasePublishableKey else {
             fatalError("Supabase configuration missing")
         }
-        
+        self.configuration = configuration
         self.client = SupabaseClient(supabaseURL: url, supabaseKey: key)
 
         decoder = JSONDecoder()
@@ -29,16 +30,19 @@ final class SupabaseBackendService: BackendService {
                     .select("*")
                     .execute()
                     .value
+                let source = venues.isEmpty
+                    ? (try await self.venueFallback.bootstrap(city: city, session: nil)).venues
+                    : venues
                 let normalizedCity = city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
                 let filtered = normalizedCity.isEmpty
-                    ? venues
-                    : venues.filter { $0.city.lowercased().contains(normalizedCity) }
-                let active = venues.filter { $0.isActive }
+                    ? source
+                    : source.filter { $0.city.lowercased().contains(normalizedCity) }
+                let active = source.filter { $0.isActive }
                 let activeFiltered = filtered.filter { $0.isActive }
 
                 if !activeFiltered.isEmpty { return .venues(activeFiltered) }
                 if !filtered.isEmpty { return .venues(filtered) }
-                return .venues(active.isEmpty ? venues : active)
+                return .venues(active.isEmpty ? source : active)
             }
             
             group.addTask {
@@ -46,7 +50,7 @@ final class SupabaseBackendService: BackendService {
                 return .feed(feed)
             }
             
-            if let authSession = session, !authSession.accessToken.hasPrefix("mock_") {
+            if let authSession = session {
                 group.addTask {
                     let stamps = try await self.fetchPassport(session: authSession)
                     return .stamps(stamps)
@@ -80,6 +84,15 @@ final class SupabaseBackendService: BackendService {
             return BootstrapPayload(venues: venues, feed: feed, users: users, stamps: stamps)
         }
     }
+
+    func restoreSession() async throws -> UserSession? {
+        do {
+            let session = try await client.auth.session
+            return try await appSession(from: session)
+        } catch {
+            return nil
+        }
+    }
     
     private enum BootstrapPayloadPart {
         case venues([Venue])
@@ -89,14 +102,24 @@ final class SupabaseBackendService: BackendService {
     }
 
     func signIn(with provider: AuthProvider) async throws -> UserSession {
-        // OAuth callback wiring is pending; keep the UI flow functional meanwhile.
-        return try await authFallback.signIn(with: provider)
+        let oauthProvider: OAuthProvider = provider == .apple ? .apple : .google
+        let authSession: Session
+
+        if let redirectTo = configuration.supabaseAuthRedirectURL {
+            authSession = try await client.auth.signInWithOAuth(
+                provider: oauthProvider,
+                redirectTo: redirectTo
+            )
+        } else {
+            authSession = try await client.auth.signInWithOAuth(
+                provider: oauthProvider
+            )
+        }
+
+        return try await appSession(from: authSession)
     }
 
     func completeOnboarding(session: UserSession, input: OnboardingInput) async throws -> UserProfile {
-        if session.accessToken.hasPrefix("mock_") {
-            return try await authFallback.completeOnboarding(session: session, input: input)
-        }
         return try await client.from("profiles")
             .update(input)
             .eq("id", value: session.user.id)
@@ -106,11 +129,18 @@ final class SupabaseBackendService: BackendService {
             .value
     }
 
-    func submitLog(session: UserSession, draft: DraftLog) async throws -> SipLog {
-        if session.accessToken.hasPrefix("mock_") {
-            return try await authFallback.submitLog(session: session, draft: draft)
-        }
+    func createVenue(session: UserSession, input: CreateVenueInput) async throws -> Venue {
+        _ = session
+        let payload = CreateVenueDTO(from: input)
+        return try await client.from("venues")
+            .insert(payload)
+            .select("*")
+            .single()
+            .execute()
+            .value
+    }
 
+    func submitLog(session: UserSession, draft: DraftLog) async throws -> SipLog {
         let logDTO = SubmitLogDTO(from: draft, userID: session.user.id, username: session.user.username)
         
         return try await client.from("logs")
@@ -122,11 +152,6 @@ final class SupabaseBackendService: BackendService {
     }
 
     func setFollow(session: UserSession, targetUserID: UUID, shouldFollow: Bool) async throws {
-        if session.accessToken.hasPrefix("mock_") {
-            try await authFallback.setFollow(session: session, targetUserID: targetUserID, shouldFollow: shouldFollow)
-            return
-        }
-
         if shouldFollow {
             let followDTO = FollowDTO(followerID: session.user.id, followingID: targetUserID)
             try await client.from("follows")
@@ -163,7 +188,42 @@ final class SupabaseBackendService: BackendService {
             .value
     }
 
-    // authedFunction removed in favor of Supabase SDK
+    private func appSession(from session: Session) async throws -> UserSession {
+        let profile = try await fetchProfileOrFallback(userID: session.user.id, email: session.user.email)
+        return UserSession(
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            user: profile
+        )
+    }
+
+    private func fetchProfileOrFallback(userID: UUID, email: String?) async throws -> UserProfile {
+        do {
+            return try await client.from("profiles")
+                .select("*")
+                .eq("id", value: userID)
+                .single()
+                .execute()
+                .value
+        } catch {
+            let handleSeed = email?.split(separator: "@").first.map(String.init) ?? "sipuser"
+            let username = handleSeed
+                .lowercased()
+                .replacingOccurrences(of: " ", with: "")
+            return UserProfile(
+                id: userID,
+                username: username,
+                displayName: username.capitalized,
+                avatarURL: nil,
+                city: "Toronto",
+                preference: .both,
+                tier: .free,
+                contributionXP: 0,
+                followerCount: 0,
+                followingCount: 0
+            )
+        }
+    }
 }
 
 private struct SubmitLogDTO: Codable {
@@ -196,6 +256,45 @@ private struct SubmitLogDTO: Codable {
         self.note = draft.note
         self.drinkType = draft.drinkType.rawValue
         self.isPublic = draft.isPublic
+    }
+}
+
+private struct CreateVenueDTO: Codable {
+    let placeID: String
+    let name: String
+    let address: String
+    let city: String
+    let latitude: Double
+    let longitude: Double
+    let category: String
+    let averageRating: Double
+    let reviewCount: Int
+    let isActive: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case placeID = "place_id"
+        case name
+        case address
+        case city
+        case latitude
+        case longitude
+        case category
+        case averageRating = "average_rating"
+        case reviewCount = "review_count"
+        case isActive = "is_active"
+    }
+
+    init(from input: CreateVenueInput) {
+        placeID = "user-\(UUID().uuidString.lowercased())"
+        name = input.name
+        address = input.address
+        city = input.city
+        latitude = input.latitude
+        longitude = input.longitude
+        category = input.category.rawValue
+        averageRating = 0
+        reviewCount = 0
+        isActive = true
     }
 }
 

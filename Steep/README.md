@@ -27,11 +27,29 @@ Set these as Xcode scheme environment variables (or xcconfig-backed build settin
 
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE`
+- `SUPABASE_AUTH_REDIRECT_URL` (recommended for OAuth, e.g. `steep://auth-callback`)
 
 Optional but currently ignored on client:
 
 - `GOOGLE_MAPS_API` (or `GOOGLE_API_KEY`) - should remain server-side only
 - `SUPABASE_SECRET` - should remain server-side only
+
+## Seed venues (coffee + matcha)
+
+Generate a deduped seed list from Brave Search + Google Places and output ready-to-import CSV/SQL:
+
+```bash
+cd Steep
+python3 scripts/seed_venues.py --city "Toronto" --max-results 60
+```
+
+Requirements:
+- `BRAVE_SEARCH_API` in repo `.env`
+- `GOOGLE_MAPS_API` in repo `.env`
+
+Output files are written to `scripts/output/`:
+- `venues_seed_<city>_<timestamp>.csv` (for Supabase CSV import)
+- `venues_seed_<city>_<timestamp>.sql` (for SQL upsert)
 
 ## Main files
 
