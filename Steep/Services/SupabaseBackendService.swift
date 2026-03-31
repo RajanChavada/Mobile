@@ -27,10 +27,18 @@ final class SupabaseBackendService: BackendService {
             group.addTask {
                 let venues: [Venue] = try await self.client.from("venues")
                     .select("*")
-                    .eq("city", value: city)
                     .execute()
                     .value
-                return .venues(venues)
+                let normalizedCity = city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+                let filtered = normalizedCity.isEmpty
+                    ? venues
+                    : venues.filter { $0.city.lowercased().contains(normalizedCity) }
+                let active = venues.filter { $0.isActive }
+                let activeFiltered = filtered.filter { $0.isActive }
+
+                if !activeFiltered.isEmpty { return .venues(activeFiltered) }
+                if !filtered.isEmpty { return .venues(filtered) }
+                return .venues(active.isEmpty ? venues : active)
             }
             
             group.addTask {

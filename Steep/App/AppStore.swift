@@ -64,7 +64,9 @@ final class AppStore: ObservableObject {
         if configuration.needsSecretWarning {
             inlineInfo = "SUPABASE_SECRET should stay server-only and never be shipped in the iOS app."
         } else if configuration.hasClientGoogleKey {
+#if DEBUG
             inlineInfo = "Google Places key should live in Supabase Edge Function env only, not the app."
+#endif
         }
     }
 

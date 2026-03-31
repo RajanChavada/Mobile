@@ -65,6 +65,12 @@ struct MapScreen: View {
                 }
             }
         }
+        .onAppear {
+            centerRegionIfNeeded()
+        }
+        .onChange(of: store.venues.count) { _ in
+            centerRegionIfNeeded()
+        }
         .navigationTitle("Map")
     }
 
@@ -163,5 +169,10 @@ struct MapScreen: View {
             RoundedRectangle(cornerRadius: Radius.md.rawValue, style: .continuous)
                 .stroke(ColorToken.border, lineWidth: 1)
         }
+    }
+
+    private func centerRegionIfNeeded() {
+        guard let first = filteredVenues.first else { return }
+        region.center = first.coordinate
     }
 }
