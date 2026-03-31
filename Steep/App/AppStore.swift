@@ -30,6 +30,7 @@ final class AppStore: ObservableObject {
     private var followState: [UUID: Bool] = [:]
 
     private let backend: BackendService
+    private let usingSupabase: Bool
     private let pendingQueue: PendingLogQueue
     private let networkMonitor: NetworkMonitor
     private var cancellables: Set<AnyCancellable> = []
@@ -43,10 +44,13 @@ final class AppStore: ObservableObject {
     ) {
         if let backend {
             self.backend = backend
+            self.usingSupabase = backend is SupabaseBackendService
         } else if configuration.canUseSupabase {
             self.backend = SupabaseBackendService(configuration: configuration)
+            self.usingSupabase = true
         } else {
             self.backend = MockBackendService()
+            self.usingSupabase = false
         }
 
         self.pendingQueue = pendingQueue
@@ -63,6 +67,8 @@ final class AppStore: ObservableObject {
 
         if configuration.needsSecretWarning {
             inlineInfo = "SUPABASE_SECRET should stay server-only and never be shipped in the iOS app."
+        } else if !usingSupabase {
+            inlineInfo = "Running in mock mode. Set SUPABASE_URL and SUPABASE_PUBLISHABLE in the iOS scheme/build settings."
         } else if configuration.hasClientGoogleKey {
 #if DEBUG
             inlineInfo = "Google Places key should live in Supabase Edge Function env only, not the app."
@@ -105,6 +111,9 @@ final class AppStore: ObservableObject {
             feed = payload.feed
             users = payload.users
             stamps = payload.stamps
+            if usingSupabase && venues.isEmpty {
+                inlineInfo = "Supabase is active but returned 0 venues for '\(city)'. Check RLS policies and city values."
+            }
             inlineError = nil
         } catch {
             inlineError = error.localizedDescription

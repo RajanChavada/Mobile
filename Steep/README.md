@@ -62,6 +62,10 @@ Output files are written to `scripts/output/`:
 - `Services/SupabaseBackendService.swift`
 - `Services/MockBackendService.swift`
 
+## Backend verification
+
+- See `BACKEND_SMOKE_TEST.md` for Supabase config/RLS checks when map data is empty or mock data appears.
+
 ## CI (No Local Xcode)
 
 - Workflow: `.github/workflows/ios-ci.yml`

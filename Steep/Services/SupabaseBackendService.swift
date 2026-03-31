@@ -5,7 +5,6 @@ final class SupabaseBackendService: BackendService {
     private let client: SupabaseClient
     private let decoder: JSONDecoder
     private let encoder: JSONEncoder
-    private let venueFallback: BackendService = MockBackendService()
     private let configuration: AppConfiguration
 
     init(configuration: AppConfiguration = .shared) {
@@ -24,65 +23,31 @@ final class SupabaseBackendService: BackendService {
     }
 
     func bootstrap(city: String, session: UserSession?) async throws -> BootstrapPayload {
-        return try await withThrowingTaskGroup(of: BootstrapPayloadPart.self) { group in
-            group.addTask {
-                let venues: [Venue] = try await self.client.from("venues")
-                    .select("*")
-                    .execute()
-                    .value
-                let source = venues.isEmpty
-                    ? (try await self.venueFallback.bootstrap(city: city, session: nil)).venues
-                    : venues
-                let normalizedCity = city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-                let filtered = normalizedCity.isEmpty
-                    ? source
-                    : source.filter { $0.city.lowercased().contains(normalizedCity) }
-                let active = source.filter { $0.isActive }
-                let activeFiltered = filtered.filter { $0.isActive }
+        let allVenues: [Venue] = try await client.from("venues")
+            .select("*")
+            .execute()
+            .value
+        let normalizedCity = city.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let filtered = normalizedCity.isEmpty
+            ? allVenues
+            : allVenues.filter { $0.city.lowercased().contains(normalizedCity) }
+        let active = allVenues.filter { $0.isActive }
+        let activeFiltered = filtered.filter { $0.isActive }
+        let venues = !activeFiltered.isEmpty ? activeFiltered : (!filtered.isEmpty ? filtered : active)
 
-                if !activeFiltered.isEmpty { return .venues(activeFiltered) }
-                if !filtered.isEmpty { return .venues(filtered) }
-                return .venues(active.isEmpty ? source : active)
-            }
-            
-            group.addTask {
-                let feed = try await self.fetchPublicFeed()
-                return .feed(feed)
-            }
-            
-            if let authSession = session {
-                group.addTask {
-                    let stamps = try await self.fetchPassport(session: authSession)
-                    return .stamps(stamps)
-                }
-            }
-            
-            // For V1, we might just fetch the current user and some "suggested" users
-            group.addTask {
-                let users: [UserProfile] = try await self.client.from("profiles")
-                    .select("*")
-                    .limit(10)
-                    .execute()
-                    .value
-                return .users(users)
-            }
-            
-            var venues: [Venue] = []
-            var feed: [SipLog] = []
-            var users: [UserProfile] = []
-            var stamps: [PassportStamp] = []
-            
-            for try await part in group {
-                switch part {
-                case .venues(let v): venues = v
-                case .feed(let f): feed = f
-                case .users(let u): users = u
-                case .stamps(let s): stamps = s
-                }
-            }
-            
-            return BootstrapPayload(venues: venues, feed: feed, users: users, stamps: stamps)
-        }
+        async let feedTask: [SipLog] = (try? fetchPublicFeed()) ?? []
+        async let usersTask: [UserProfile] = (try? fetchUsers()) ?? []
+        async let stampsTask: [PassportStamp] = {
+            guard let authSession = session else { return [] }
+            return (try? fetchPassport(session: authSession)) ?? []
+        }()
+
+        return BootstrapPayload(
+            venues: venues,
+            feed: await feedTask,
+            users: await usersTask,
+            stamps: await stampsTask
+        )
     }
 
     func restoreSession() async throws -> UserSession? {
@@ -98,13 +63,6 @@ final class SupabaseBackendService: BackendService {
         client.auth.handle(url)
     }
     
-    private enum BootstrapPayloadPart {
-        case venues([Venue])
-        case feed([SipLog])
-        case users([UserProfile])
-        case stamps([PassportStamp])
-    }
-
     func signIn(with provider: AuthProvider) async throws -> UserSession {
         let authSession =
         if let redirectTo = configuration.supabaseAuthRedirectURL {
@@ -178,6 +136,14 @@ final class SupabaseBackendService: BackendService {
             .select("*, venues(*), users(*)")
             .eq("is_public", value: true)
             .order("created_at", ascending: false)
+            .execute()
+            .value
+    }
+
+    private func fetchUsers() async throws -> [UserProfile] {
+        return try await client.from("profiles")
+            .select("*")
+            .limit(10)
             .execute()
             .value
     }
