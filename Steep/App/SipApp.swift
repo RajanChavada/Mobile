@@ -9,6 +9,11 @@ struct SipApp: App {
             RootView()
                 .environmentObject(store)
                 .preferredColorScheme(.light)
+                .onOpenURL { url in
+                    Task {
+                        await store.handleOpenURL(url)
+                    }
+                }
         }
     }
 }

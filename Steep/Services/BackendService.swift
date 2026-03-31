@@ -10,6 +10,7 @@ struct BootstrapPayload {
 protocol BackendService {
     func bootstrap(city: String, session: UserSession?) async throws -> BootstrapPayload
     func restoreSession() async throws -> UserSession?
+    func handleIncomingURL(_ url: URL)
     func signIn(with provider: AuthProvider) async throws -> UserSession
     func completeOnboarding(session: UserSession, input: OnboardingInput) async throws -> UserProfile
     func createVenue(session: UserSession, input: CreateVenueInput) async throws -> Venue
@@ -22,5 +23,9 @@ protocol BackendService {
 extension BackendService {
     func restoreSession() async throws -> UserSession? {
         nil
+    }
+
+    func handleIncomingURL(_ url: URL) {
+        _ = url
     }
 }

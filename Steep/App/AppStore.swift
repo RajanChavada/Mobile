@@ -280,6 +280,17 @@ final class AppStore: ObservableObject {
         inlineInfo = nil
     }
 
+    func handleOpenURL(_ url: URL) async {
+        backend.handleIncomingURL(url)
+        if let restored = try? await backend.restoreSession() {
+            authState = .authenticated(restored)
+            city = restored.user.city
+            isSignInSheetPresented = false
+            isOnboardingPresented = needsOnboarding(profile: restored.user)
+            await bootstrap()
+        }
+    }
+
     private func executeProtectedAction(_ action: ProtectedAction) {
         switch action {
         case .log(let venue):

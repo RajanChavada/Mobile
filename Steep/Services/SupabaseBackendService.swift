@@ -93,6 +93,10 @@ final class SupabaseBackendService: BackendService {
             return nil
         }
     }
+
+    func handleIncomingURL(_ url: URL) {
+        client.auth.handle(url)
+    }
     
     private enum BootstrapPayloadPart {
         case venues([Venue])
@@ -102,17 +106,15 @@ final class SupabaseBackendService: BackendService {
     }
 
     func signIn(with provider: AuthProvider) async throws -> UserSession {
-        let oauthProvider: OAuthProvider = provider == .apple ? .apple : .google
-        let authSession: Session
-
+        let authSession =
         if let redirectTo = configuration.supabaseAuthRedirectURL {
-            authSession = try await client.auth.signInWithOAuth(
-                provider: oauthProvider,
+            try await client.auth.signInWithOAuth(
+                provider: provider == .apple ? .apple : .google,
                 redirectTo: redirectTo
             )
         } else {
-            authSession = try await client.auth.signInWithOAuth(
-                provider: oauthProvider
+            try await client.auth.signInWithOAuth(
+                provider: provider == .apple ? .apple : .google
             )
         }
 
