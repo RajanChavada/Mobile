@@ -43,6 +43,10 @@ targets:
     info:
       path: Info.plist
       properties:
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_PUBLISHABLE: $(SUPABASE_PUBLISHABLE)
+        GOOGLE_MAPS_API: $(GOOGLE_MAPS_API)
+        NSPhotoLibraryUsageDescription: Allow photo access so you can attach images to your logs.
         ITSAppUsesNonExemptEncryption: false
         CFBundleIconName: AppIcon
         UILaunchStoryboardName: LaunchScreen

@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct QuickLogSheet: View {
     @EnvironmentObject private var store: AppStore
@@ -8,7 +9,8 @@ struct QuickLogSheet: View {
     @State private var note: String = ""
     @State private var drinkType: DrinkPreference = .both
     @State private var isPublic: Bool = false
-    @State private var selectedPhotoCount: Int = 0
+    @State private var selectedPhotoItems: [PhotosPickerItem] = []
+    @State private var selectedImageData: [Data] = []
     @State private var isSubmitting: Bool = false
     @State private var inlineError: String?
 
@@ -46,10 +48,28 @@ struct QuickLogSheet: View {
                 .sipLabel()
 
             HStack(spacing: Spacing.sm.rawValue) {
-                SipButton(title: "Add photo", style: .secondary, fullWidth: false) {
-                    addPhoto()
+                PhotosPicker(
+                    selection: $selectedPhotoItems,
+                    maxSelectionCount: maxPhotoCount,
+                    matching: .images
+                ) {
+                    HStack(spacing: Spacing.sm.rawValue) {
+                        Image(systemName: "photo.on.rectangle")
+                        Text("Add photo")
+                            .sipBody()
+                    }
+                    .padding(.horizontal, Spacing.md.rawValue)
+                    .padding(.vertical, Spacing.sm.rawValue)
+                    .background(ColorToken.surface)
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.md.rawValue, style: .continuous))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Radius.md.rawValue, style: .continuous)
+                            .stroke(ColorToken.border, lineWidth: 1)
+                    }
                 }
-                Text("\(selectedPhotoCount) selected")
+                .disabled(store.currentUser == nil)
+
+                Text("\(selectedImageData.count) selected")
                     .sipLabel()
                     .monospacedDigit()
             }
@@ -65,6 +85,9 @@ struct QuickLogSheet: View {
         .padding(.top, Spacing.sm.rawValue)
         .onAppear {
             selectedVenueID = store.quickLogVenue?.id ?? store.venues.first?.id
+        }
+        .onChange(of: selectedPhotoItems.count) { _ in
+            Task { await loadSelectedPhotos() }
         }
     }
 
@@ -91,18 +114,33 @@ struct QuickLogSheet: View {
         }
     }
 
-    private func addPhoto() {
+    private var maxPhotoCount: Int {
         guard let tier = store.currentUser?.tier else {
+            return 0
+        }
+        return tier == .free ? 1 : 10
+    }
+
+    private func loadSelectedPhotos() async {
+        guard store.currentUser != nil else {
             inlineError = "Sign in to add photos."
+            selectedPhotoItems = []
+            selectedImageData = []
             return
         }
 
-        if tier == .free && selectedPhotoCount >= 1 {
+        if selectedPhotoItems.count > maxPhotoCount {
             inlineError = "Free supports one photo per log. Upgrade to add more."
-            return
+            selectedPhotoItems = Array(selectedPhotoItems.prefix(maxPhotoCount))
         }
 
-        selectedPhotoCount += 1
+        var loaded: [Data] = []
+        for item in selectedPhotoItems {
+            if let data = try? await item.loadTransferable(type: Data.self) {
+                loaded.append(data)
+            }
+        }
+        selectedImageData = loaded
         inlineError = nil
     }
 
@@ -121,7 +159,6 @@ struct QuickLogSheet: View {
         isSubmitting = true
         defer { isSubmitting = false }
 
-        let imageData = Array(repeating: Data(), count: selectedPhotoCount)
         await store.submitLog(
             draft: DraftLog(
                 temporaryID: UUID(),
@@ -129,7 +166,7 @@ struct QuickLogSheet: View {
                 rating: rating,
                 note: note,
                 drinkType: drinkType,
-                imageData: imageData,
+                imageData: selectedImageData,
                 isPublic: isPublic
             )
         )

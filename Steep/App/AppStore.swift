@@ -30,7 +30,6 @@ final class AppStore: ObservableObject {
     private var followState: [UUID: Bool] = [:]
 
     private let backend: BackendService
-    private let guestSeedBackend: BackendService
     private let pendingQueue: PendingLogQueue
     private let networkMonitor: NetworkMonitor
     private var cancellables: Set<AnyCancellable> = []
@@ -49,7 +48,6 @@ final class AppStore: ObservableObject {
         } else {
             self.backend = MockBackendService()
         }
-        guestSeedBackend = MockBackendService()
 
         self.pendingQueue = pendingQueue
         self.networkMonitor = networkMonitor
@@ -95,14 +93,7 @@ final class AppStore: ObservableObject {
         isLoading = true
         defer { isLoading = false }
         do {
-            let selectedBackend: BackendService
-            if authSession == nil, !(backend is MockBackendService) {
-                selectedBackend = guestSeedBackend
-            } else {
-                selectedBackend = backend
-            }
-
-            let payload = try await selectedBackend.bootstrap(city: city, session: authSession)
+            let payload = try await backend.bootstrap(city: city, session: authSession)
             venues = payload.venues
             feed = payload.feed
             users = payload.users
