@@ -60,7 +60,9 @@ final class SupabaseBackendService: BackendService {
     }
 
     func handleIncomingURL(_ url: URL) {
-        client.auth.handle(url)
+        Task {
+            _ = try? await client.auth.session(from: url)
+        }
     }
     
     func signIn(with provider: AuthProvider) async throws -> UserSession {
