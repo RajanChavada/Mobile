@@ -17,6 +17,11 @@ platform :ios do
       required_env = %w[ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_CONTENT]
       missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
       UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
+
+      required_backend_env = %w[SUPABASE_URL SUPABASE_PUBLISHABLE SUPABASE_AUTH_REDIRECT_URL]
+      missing_backend = required_backend_env.select { |k| ENV[k].to_s.strip.empty? }
+      UI.user_error!("Missing required backend env vars: #{missing_backend.join(', ')}") unless missing_backend.empty?
+
       asc_key_id = ENV["ASC_KEY_ID"].to_s.strip
       asc_issuer_id = ENV["ASC_ISSUER_ID"].to_s.strip
 
@@ -45,11 +50,21 @@ platform :ios do
         in_house: false
       )
 
+      xcargs_parts = [
+        "-allowProvisioningUpdates",
+        "-authenticationKeyPath #{key_path}",
+        "-authenticationKeyID #{asc_key_id}",
+        "-authenticationKeyIssuerID #{asc_issuer_id}",
+        "SUPABASE_URL=#{ENV['SUPABASE_URL'].to_s.dump}",
+        "SUPABASE_PUBLISHABLE=#{ENV['SUPABASE_PUBLISHABLE'].to_s.dump}",
+        "SUPABASE_AUTH_REDIRECT_URL=#{ENV['SUPABASE_AUTH_REDIRECT_URL'].to_s.dump}"
+      ]
+
       # 3. Build the app
       build_app(
         scheme: "Steep",
         export_method: "app-store",
-        xcargs: "-allowProvisioningUpdates -authenticationKeyPath #{key_path} -authenticationKeyID #{asc_key_id} -authenticationKeyIssuerID #{asc_issuer_id}"
+        xcargs: xcargs_parts.join(" ")
       )
 
       # 4. Upload to TestFlight
