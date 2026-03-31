@@ -66,18 +66,18 @@ final class SupabaseBackendService: BackendService {
     }
     
     func signIn(with provider: AuthProvider) async throws -> UserSession {
-        let authSession =
         if let redirectTo = configuration.supabaseAuthRedirectURL {
-            try await client.auth.signInWithOAuth(
+            _ = try await client.auth.signInWithOAuth(
                 provider: provider == .apple ? .apple : .google,
                 redirectTo: redirectTo
             )
         } else {
-            try await client.auth.signInWithOAuth(
+            _ = try await client.auth.signInWithOAuth(
                 provider: provider == .apple ? .apple : .google
             )
         }
 
+        let authSession = try await client.auth.session
         return try await appSession(from: authSession)
     }
 
