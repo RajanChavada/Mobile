@@ -18,9 +18,10 @@ platform :ios do
       missing = required_env.select { |k| ENV[k].to_s.strip.empty? }
       UI.user_error!("Missing required env vars: #{missing.join(', ')}") unless missing.empty?
 
+      ENV["SUPABASE_AUTH_REDIRECT_URL"] = "steep://auth-callback" if ENV["SUPABASE_AUTH_REDIRECT_URL"].to_s.strip.empty?
       UI.message("Backend env presence: SUPABASE_URL=#{ENV['SUPABASE_URL'].to_s.strip.empty? ? 'no' : 'yes'}, SUPABASE_PUBLISHABLE=#{ENV['SUPABASE_PUBLISHABLE'].to_s.strip.empty? ? 'no' : 'yes'}, SUPABASE_AUTH_REDIRECT_URL=#{ENV['SUPABASE_AUTH_REDIRECT_URL'].to_s.strip.empty? ? 'no' : 'yes'}")
 
-      required_backend_env = %w[SUPABASE_URL SUPABASE_PUBLISHABLE SUPABASE_AUTH_REDIRECT_URL]
+      required_backend_env = %w[SUPABASE_URL SUPABASE_PUBLISHABLE]
       missing_backend = required_backend_env.select { |k| ENV[k].to_s.strip.empty? }
       UI.user_error!("Missing required backend env vars: #{missing_backend.join(', ')}") unless missing_backend.empty?
 
