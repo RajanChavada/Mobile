@@ -71,6 +71,7 @@ jobs:
       ASC_KEY_CONTENT_BASE64: ${{ secrets.ASC_KEY_CONTENT_BASE64 }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLISHABLE: ${{ secrets.SUPABASE_PUBLISHABLE }}
+      SUPABASE_AUTH_REDIRECT_URL: ${{ secrets.SUPABASE_AUTH_REDIRECT_URL || 'steep://auth-callback' }}
       GOOGLE_MAPS_API: ${{ secrets.GOOGLE_MAPS_API }}
 
     steps:
@@ -97,6 +98,7 @@ jobs:
           if ! command -v xcodegen >/dev/null 2>&1; then
             brew install xcodegen
           fi
+
 
       - name: Deploy to TestFlight
         run: |

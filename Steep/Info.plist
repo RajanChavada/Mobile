@@ -28,6 +28,8 @@
 	<string>Allow photo access so you can attach images to your logs.</string>
 	<key>SUPABASE_PUBLISHABLE</key>
 	<string>$(SUPABASE_PUBLISHABLE)</string>
+	<key>SUPABASE_AUTH_REDIRECT_URL</key>
+	<string>$(SUPABASE_AUTH_REDIRECT_URL)</string>
 	<key>SUPABASE_URL</key>
 	<string>$(SUPABASE_URL)</string>
 	<key>UIDeviceFamily</key>

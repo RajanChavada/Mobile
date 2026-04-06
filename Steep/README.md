@@ -66,6 +66,16 @@ Output files are written to `scripts/output/`:
 
 - See `BACKEND_SMOKE_TEST.md` for Supabase config/RLS checks when map data is empty or mock data appears.
 
+## Certificates / Match
+
+- App Store builds now rely on `match`. Set these repo secrets (used by Fastlane) before deploying:
+  * `MATCH_GIT_URL`
+  * `MATCH_PASSWORD`
+  * `MATCH_TEAM_ID`
+  * `APPSTORE_CONNECT_USER`
+  * `MATCH_GIT_BRANCH` (optional, defaults to `main`)
+  * `ASC_KEY_*`, `SUPABASE_*` as before
+
 ## CI (No Local Xcode)
 
 - Workflow: `.github/workflows/ios-ci.yml`
